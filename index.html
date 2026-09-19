@@ -71,31 +71,37 @@ body{
   box-shadow:0 10px 30px -5px rgba(0,0,0,.05),0 0 0 1px rgba(0,0,0,.02);
   overflow:hidden;
 }
+.seg{display:flex;background:var(--fill);border-radius:var(--rs);padding:3px;gap:2px}
+.seg button{flex:1;border:none;background:transparent;font-family:inherit;font-size:.75rem;padding:6px 10px;border-radius:6px;cursor:pointer;color:var(--ink2);transition:.15s ease;white-space:nowrap}
+.seg button:hover{color:var(--ink)}
+.seg button.active{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.check-row{display:flex;align-items:center;gap:7px;font-size:.78rem;color:var(--ink2);cursor:pointer;user-select:none;padding:2px}
+.check-row input{accent-color:var(--accent);width:15px;height:15px;cursor:pointer;flex-shrink:0}
+.hint{font-size:.67rem;color:var(--ink3);line-height:1.7;text-align:center;padding:0 2px}
 
-/* === Table — bigger fonts, more padding === */
 .planner-table{width:100%;border-collapse:collapse;table-layout:fixed;text-align:center}
 .planner-table th{
   background:var(--fill);color:#475569;font-weight:500;
-  font-size:.95rem;              /* up from .82rem */
-  padding:18px 8px;              /* up from 14px 6px */
+  font-size:.95rem;
+  padding:18px 8px;
   border:1px solid var(--line);border-bottom:2px solid var(--line2);
   overflow:hidden;text-overflow:ellipsis;
 }
 .planner-table td{border:1px solid var(--line);padding:0;position:relative}
 .day-cell{
   background:var(--fill);font-weight:500;
-  font-size:1.05rem;             /* up from .88rem */
+  font-size:1.05rem;
   padding:20px 8px;
   vertical-align:middle;color:var(--ink);overflow:hidden;text-overflow:ellipsis;
 }
-.data-cell{height:95px;background:#fafafa;transition:background-color .2s}   /* up from 80px */
+.data-cell{height:95px;background:#fafafa;transition:background-color .2s}
 .data-cell.is-empty{
   background-image:repeating-linear-gradient(45deg,transparent,transparent 8px,rgba(0,0,0,.015) 8px,rgba(0,0,0,.015) 16px);
 }
 .cell-input{
   position:absolute;inset:0;width:100%;height:100%;border:none;background:transparent;
   font-family:inherit;
-  font-size:1rem;                /* up from .8rem */
+  font-size:1rem;
   font-weight:400;
   text-align:center;padding:8px;
   outline:none;cursor:text;direction:rtl;transition:color .2s;
@@ -124,7 +130,7 @@ body{
 .color-picker-footer{margin-top:8px;padding-top:8px;border-top:1px solid var(--line);display:flex;justify-content:center}
 .unassign-btn{background:var(--fill);border:none;padding:6px 14px;border-radius:6px;font-family:inherit;font-size:.73rem;color:var(--ink2);cursor:pointer;transition:.15s}
 .unassign-btn:hover{background:var(--line);color:var(--ink)}
-.toast-stack{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;z-index:3000;pointer-events:none;align-items:center}
+.toast-stack{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;z-index:5000;pointer-events:none;align-items:center}
 .toast{background:var(--ink);color:#fff;padding:10px 18px;border-radius:10px;font-size:.82rem;box-shadow:0 10px 30px rgba(0,0,0,.2);opacity:0;transform:translateY(10px);transition:.25s ease;pointer-events:auto;max-width:340px;text-align:center}
 .toast.show{opacity:1;transform:translateY(0)}
 .toast.success{background:#166534}
@@ -135,7 +141,118 @@ body{
 .modal-overlay.show .modal{transform:scale(1)}
 .modal p{font-size:.88rem;margin-bottom:18px;line-height:1.6}
 .modal-actions{display:flex;gap:8px}
+
+/* ==== Export preview modal ==== */
+.export-modal-overlay{
+  position:fixed;inset:0;background:rgba(15,23,42,.65);backdrop-filter:blur(6px);
+  z-index:4000;display:flex;align-items:center;justify-content:center;padding:16px;
+  opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s;
+}
+.export-modal-overlay.show{opacity:1;visibility:visible}
+.export-modal{
+  background:#fff;border-radius:16px;width:100%;max-width:900px;max-height:94vh;
+  display:flex;flex-direction:column;overflow:hidden;
+  box-shadow:0 30px 80px rgba(0,0,0,.45);
+  transform:scale(.97);transition:transform .2s;
+}
+.export-modal-overlay.show .export-modal{transform:scale(1)}
+.export-modal-head{
+  padding:14px 18px;border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+}
+.export-modal-head h3{font-size:.95rem;font-weight:600;flex:1;min-width:100px}
+.export-modal-body{
+  flex:1;min-height:0;overflow:auto;background:#e2e8f0;
+  padding:22px;display:flex;justify-content:center;align-items:flex-start;
+}
+.export-preview-wrap{display:flex;justify-content:center;align-items:flex-start}
+.export-preview-holder{position:relative;box-shadow:0 12px 40px rgba(0,0,0,.18);background:#fff}
+.export-modal-foot{
+  padding:12px 18px;border-top:1px solid var(--line);
+  display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;
+}
+.export-modal-foot .btn{flex:0 0 auto;padding:9px 16px;font-size:.82rem}
+@media(max-width:600px){
+  .export-modal-head{gap:8px}
+  .export-modal-body{padding:12px}
+  .export-modal-foot .btn{flex:1 1 100%}
+}
+
+/* ============================================================
+   EXPORT DOCUMENT — off-screen render, fixed A4 page
+   ============================================================ */
+.export-stage{position:fixed;top:0;left:-20000px;pointer-events:none;z-index:-1}
+
+.export-page{
+  display:block;background:#fff;box-sizing:border-box;direction:rtl;
+  font-family:'Vazirmatn',Tahoma,Arial,sans-serif;color:#1e293b;
+  overflow:hidden;
+}
+.export-page,.export-page *{
+  -webkit-print-color-adjust:exact !important;
+  print-color-adjust:exact !important;
+}
+
+.export-head{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1mm;
+}
+.export-head-title{font-size:15pt;font-weight:600;color:#1e293b;line-height:1.2}
+.export-head-date{font-size:9pt;font-weight:400;color:#64748b;line-height:1.2}
+
+.export-table{
+  width:100%;border-collapse:collapse;table-layout:fixed;text-align:center;
+  font-size:14px;
+}
+.export-table th{
+  background:#f8fafc;color:#475569;font-weight:500;font-size:.95em;
+  border:1px solid #e2e8f0;border-bottom:1.5px solid #cbd5e1;
+  padding:2mm 1.5mm;vertical-align:middle;
+  word-break:break-word;line-height:1.3;
+}
+.export-table td{
+  border:1px solid #e2e8f0;
+  padding:2mm 1.5mm;vertical-align:middle;
+  word-break:break-word;line-height:1.35;
+}
+.export-corner{font-size:.95em}
+.export-day{
+  background:#f8fafc;color:#1e293b;font-weight:500;
+  font-size:1.12em;white-space:nowrap;
+}
+.export-cell{font-size:1em;font-weight:400}
+
+/* ============================================================
+   PRINT — one page, correct orientation, no browser furniture
+   ============================================================ */
+@media print{
+  html,body{
+    margin:0 !important;padding:0 !important;
+    background:#fff !important;overflow:visible !important;
+    width:auto !important;height:auto !important;
+  }
+  body > *:not(#exportStage){display:none !important}
+
+  #exportStage{
+    position:static !important;left:auto !important;top:auto !important;
+    display:block !important;pointer-events:auto !important;
+    margin:0 !important;padding:0 !important;z-index:auto !important;
+  }
+  .export-page{
+    margin:0 !important;
+    box-shadow:none !important;
+    page-break-after:avoid !important;
+    page-break-inside:avoid !important;
+    break-inside:avoid !important;
+    break-after:avoid !important;
+  }
+  .export-table{page-break-inside:avoid !important}
+  .export-table tr{page-break-inside:avoid !important}
+}
 </style>
+
+<!-- Static print page rule. JS only rewrites its content, which browsers
+     handle far more reliably than injecting a whole new <style> tag. -->
+<style id="printPageRule" media="print">@page { size: A4 portrait; margin: 0; }</style>
 </head>
 <body>
 
@@ -143,9 +260,17 @@ body{
   <aside class="sidebar">
     <div class="btn-row">
       <button class="btn btn-primary" id="randomBtn">🎲 رنگ‌بندی تصادفی</button>
-      <button class="btn btn-secondary" id="exportBtn">📥 دانلود تصویر JPG</button>
       <button class="btn btn-secondary" id="clearBtn">🗑️ پاک کردن همه</button>
     </div>
+
+    <div class="sec">
+      <h2>خروجی</h2>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="exportOpenBtn">📤 پیش‌نمایش و خروجی</button>
+      </div>
+      <p class="hint">پیش‌نمایش A4، سپس چاپ / ذخیره PDF یا دانلود PNG با کیفیت ۳۰۰ dpi.</p>
+    </div>
+
     <div class="sec">
       <h2>پالت رنگ</h2>
       <ul class="palette-list" id="paletteList"></ul>
@@ -174,6 +299,29 @@ body{
   </main>
 </div>
 
+<!-- Export preview modal -->
+<div class="export-modal-overlay" id="exportModal">
+  <div class="export-modal" role="dialog" aria-modal="true">
+    <div class="export-modal-head">
+      <h3>پیش‌نمایش خروجی</h3>
+      <div class="seg" id="modalOrientSeg">
+        <button type="button" data-v="auto">خودکار</button>
+        <button type="button" data-v="portrait">عمودی</button>
+        <button type="button" data-v="landscape">افقی</button>
+      </div>
+      <label class="check-row"><input type="checkbox" id="modalTitleToggle"> عنوان و تاریخ</label>
+    </div>
+    <div class="export-modal-body">
+      <div class="export-preview-wrap" id="exportPreviewWrap"></div>
+    </div>
+    <div class="export-modal-foot">
+      <button class="btn btn-secondary" id="modalCloseBtn">بستن</button>
+      <button class="btn btn-secondary" id="modalPngBtn">🖼️ PNG (۳۰۰ dpi)</button>
+      <button class="btn btn-primary" id="modalPrintBtn">🖨️ چاپ / ذخیره PDF</button>
+    </div>
+  </div>
+</div>
+
 <div class="autocomplete" id="autocomplete"></div>
 <div class="color-picker" id="colorPicker"></div>
 <div class="toast-stack" id="toastStack"></div>
@@ -198,8 +346,38 @@ const PRESETS = [
   { label:'۱۲ ساعته', headers:['۸:۰۰-۱۰:۰۰','۱۰:۰۰-۱۲:۰۰','۱:۳۰-۳:۳۰','۳:۳۰-۵:۳۰'] },
 ];
 
-const S = { headers:[...PRESETS[0].headers], grid:[], colors:{}, palette:'Pastel' };
+const A4 = { portrait:{ w:210, h:297 }, landscape:{ w:297, h:210 } };
+const MARGIN = 10;
+/* 2mm slack + overflow:hidden on the page = guaranteed single page in
+   every browser. Browsers add sub-pixel rounding; without slack the
+   content spills onto a second page even when it "fits" mathematically. */
+const PAGE_SLACK = 2;
+const TITLE_BLOCK = 15;
+const PNG_SHORT_EDGE = 2480;
+
+const SETTINGS_KEY = 'planner.export.v2';
+
+const S = {
+  headers:[...PRESETS[0].headers],
+  grid:[],
+  colors:{},
+  palette:'Pastel',
+  orientation:'auto',
+  exportTitle:false,
+};
 S.grid = DAYS.map(() => S.headers.map(() => ''));
+
+(function loadSettings(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+    if(['auto','portrait','landscape'].includes(raw.orientation)) S.orientation = raw.orientation;
+    if(typeof raw.exportTitle === 'boolean') S.exportTitle = raw.exportTitle;
+  }catch(_){}
+})();
+function saveSettings(){
+  try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify({ orientation:S.orientation, exportTitle:S.exportTitle })); }catch(_){}
+}
+
 let lastFocusTime = 0;
 let hideTimer = null;
 
@@ -245,6 +423,17 @@ function nextColor(){const u=usedColors();return paletteColors().find(c=>!u.has(
 function cleanupOrphans(){const used=new Set();S.grid.forEach(r=>r.forEach(v=>v&&used.add(v)));for(const k of Object.keys(S.colors))if(!used.has(k))delete S.colors[k]}
 function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
 
+function persianDateLong(){
+  try{ return new Intl.DateTimeFormat('fa-IR',{weekday:'long',year:'numeric',month:'long',day:'numeric'}).format(new Date()); }
+  catch(_){ return ''; }
+}
+function dateStamp(){
+  try{
+    return new Intl.DateTimeFormat('fa-IR-u-nu-latn',{year:'numeric',month:'2-digit',day:'2-digit'})
+      .format(new Date()).replace(/\//g,'-');
+  }catch(_){ return new Date().toISOString().slice(0,10); }
+}
+
 function notify(msg,type=''){
   const el=document.createElement('div');el.className='toast '+type;el.textContent=msg;
   $('toastStack').appendChild(el);requestAnimationFrame(()=>el.classList.add('show'));
@@ -259,6 +448,9 @@ function confirmDialog(msg,ok='بله',cancel='لغو'){
   });
 }
 
+/* ============================================================
+   Live table
+   ============================================================ */
 function buildTable(){
   $('tableHead').innerHTML='<tr><th>روز / ستون</th>'+S.headers.map((h,i)=>`<th data-col="${i}">${escapeHtml(h)}</th>`).join('')+'</tr>';
   const tb=$('tableBody');tb.innerHTML='';
@@ -340,6 +532,9 @@ function highlightMatch(original,query){
 const hideSuggestions=()=>{$('autocomplete').style.display='none'};
 function applySuggestion(inp,name){inp.value=name;handleCellInput(inp);hideSuggestions()}
 
+/* ============================================================
+   Sidebar rendering
+   ============================================================ */
 function renderClasses(){
   const list=$('classList'),names=classNames();
   $('classCount').textContent=names.length?`(${names.length})`:'';
@@ -465,69 +660,371 @@ async function clearAll(){
   renderClasses();notify('همه پاک شد','success');
 }
 
-/* === Export — dynamic width, bigger fonts, more padding === */
-function buildExportTable(){
-  const wrap=document.createElement('div');
-  wrap.style.cssText=`position:absolute;top:-99999px;left:0;background:#fff;padding:14px;border-radius:12px;font-family:'Vazirmatn',Tahoma,Arial,sans-serif;direction:rtl;width:fit-content;`;
-  const tbl=document.createElement('table');
-  tbl.style.cssText=`border-collapse:collapse;text-align:center;font-family:'Vazirmatn',Tahoma,Arial,sans-serif;`;
-  const thead=document.createElement('thead'),hr=document.createElement('tr');
-  ['روز / ستون',...S.headers].forEach(text=>{
-    const th=document.createElement('th');th.textContent=text;
-    th.style.cssText=`background:#f8fafc;color:#475569;font-weight:500;font-size:16px;padding:20px 22px;border:1px solid #e2e8f0;border-bottom:2px solid #cbd5e1;white-space:nowrap;`;
+/* ============================================================
+   EXPORT
+   ============================================================ */
+
+function resolveOrientation(){
+  if(S.orientation === 'portrait' || S.orientation === 'landscape') return S.orientation;
+  return S.headers.length > 6 ? 'landscape' : 'portrait';
+}
+
+/* Rewrite the *content* of the static print style element. This is the
+   reliable way to change @page size at runtime in Chrome/Firefox. */
+function applyPageRule(orientation){
+  const el = document.getElementById('printPageRule');
+  if(el) el.textContent = `@page { size: A4 ${orientation}; margin: 0; }`;
+}
+
+function buildExportPage(orientation){
+  const { w, h } = A4[orientation];
+  const pageH    = h - PAGE_SLACK;
+  const contentW = w - MARGIN * 2;
+  const contentH = pageH - MARGIN * 2;
+
+  const page = document.createElement('div');
+  page.className = 'export-page';
+  page.style.width   = w + 'mm';
+  page.style.height  = pageH + 'mm';
+  page.style.padding = MARGIN + 'mm';
+
+  let titleH = 0;
+  if(S.exportTitle){
+    titleH = TITLE_BLOCK;
+    const head = document.createElement('div');
+    head.className = 'export-head';
+    head.style.height = titleH + 'mm';
+
+    const t = document.createElement('div');
+    t.className = 'export-head-title';
+    t.textContent = 'برنامه هفتگی';
+
+    const sub = document.createElement('div');
+    sub.className = 'export-head-date';
+    sub.textContent = persianDateLong();
+
+    head.appendChild(t);
+    head.appendChild(sub);
+    page.appendChild(head);
+  }
+
+  const tableH   = contentH - titleH;
+  const headRowH = Math.min(18, Math.max(11, tableH * 0.06));
+  const dayRowH  = (tableH - headRowH) / DAYS.length;
+
+  const dayColW  = Math.min(28, Math.max(18, contentW * 0.13));
+  const dataColW = (contentW - dayColW) / S.headers.length;
+
+  const table = document.createElement('table');
+  table.className = 'export-table';
+  table.style.height = tableH + 'mm';
+  table.dataset.targetHeight = String(tableH);
+
+  const cg = document.createElement('colgroup');
+  const c0 = document.createElement('col'); c0.style.width = dayColW + 'mm'; cg.appendChild(c0);
+  S.headers.forEach(() => {
+    const c = document.createElement('col'); c.style.width = dataColW + 'mm'; cg.appendChild(c);
+  });
+  table.appendChild(cg);
+
+  const thead = document.createElement('thead');
+  const hr = document.createElement('tr');
+  hr.style.height = headRowH + 'mm';
+
+  const corner = document.createElement('th');
+  corner.className = 'export-corner';
+  corner.textContent = 'روز';
+  hr.appendChild(corner);
+
+  S.headers.forEach(hd => {
+    const th = document.createElement('th');
+    th.textContent = hd;
     hr.appendChild(th);
   });
-  thead.appendChild(hr);tbl.appendChild(thead);
-  const tbody=document.createElement('tbody');
-  DAYS.forEach((day,d)=>{
-    const tr=document.createElement('tr');
-    const dayTd=document.createElement('td');dayTd.textContent=day;
-    dayTd.style.cssText=`background:#f8fafc;color:#1e293b;font-weight:500;font-size:17px;padding:24px 22px;border:1px solid #e2e8f0;white-space:nowrap;`;
+  thead.appendChild(hr);
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  DAYS.forEach((day, d) => {
+    const tr = document.createElement('tr');
+    tr.style.height = dayRowH + 'mm';
+
+    const dayTd = document.createElement('td');
+    dayTd.className = 'export-day';
+    dayTd.textContent = day;
     tr.appendChild(dayTd);
-    S.headers.forEach((_,t)=>{
-      const val=S.grid[d][t],color=val?S.colors[val]:null;
-      const td=document.createElement('td');td.textContent=val||'';
-      td.style.cssText=`background:${color||'#fff'};color:${color?textColorFor(color):'#1e293b'};font-weight:400;font-size:16px;padding:24px 22px;border:1px solid #e2e8f0;vertical-align:middle;line-height:1.5;`;
+
+    S.headers.forEach((_, t) => {
+      const val = S.grid[d][t];
+      const color = val ? S.colors[val] : null;
+      const td = document.createElement('td');
+      td.className = 'export-cell';
+      td.textContent = val || '';
+      if(color){
+        td.style.background = color;
+        td.style.color = textColorFor(color);
+      }
       tr.appendChild(td);
     });
+
     tbody.appendChild(tr);
   });
-  tbl.appendChild(tbody);wrap.appendChild(tbl);return wrap;
+  table.appendChild(tbody);
+  page.appendChild(table);
+
+  return page;
 }
-async function exportJPG(){
-  const btn=$('exportBtn'),original=btn.innerHTML;
-  btn.innerHTML='⏳ در حال آماده‌سازی...';btn.disabled=true;
-  let wrap=null;
-  try{
-    if(document.fonts&&document.fonts.ready)await document.fonts.ready;
-    wrap=buildExportTable();document.body.appendChild(wrap);
-    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-    const canvas=await html2canvas(wrap,{scale:2,backgroundColor:'#ffffff',useCORS:true,logging:false});
-    const data=canvas.toDataURL('image/jpeg',0.92);
-    const a=document.createElement('a');a.download='weekly-schedule.jpg';a.href=data;
-    document.body.appendChild(a);a.click();document.body.removeChild(a);
-    notify('تصویر دانلود شد','success');
-  }catch(err){console.error(err);notify('خطا در ساخت تصویر','error')}
-  finally{
-    if(wrap&&wrap.parentNode)wrap.parentNode.removeChild(wrap);
-    btn.innerHTML=original;btn.disabled=false;
+
+function autofitExport(page){
+  const table = page.querySelector('.export-table');
+  if(!table) return;
+  const targetMm = parseFloat(table.dataset.targetHeight || '0');
+  if(!targetMm) return;
+  const targetPx = targetMm * (96 / 25.4);
+
+  let size = 14;
+  table.style.fontSize = size + 'px';
+
+  let guard = 0;
+  while(page.scrollHeight > page.clientHeight && size > 8.5 && guard++ < 15){
+    size -= 0.5;
+    table.style.fontSize = size + 'px';
   }
 }
 
+/* Mount a fresh full-size export page off-screen. Used for print + PNG. */
+function mountStage(orientation){
+  const old = document.getElementById('exportStage');
+  if(old) old.remove();
+
+  const stage = document.createElement('div');
+  stage.id = 'exportStage';
+  stage.className = 'export-stage';
+
+  const page = buildExportPage(orientation);
+  stage.appendChild(page);
+  document.body.appendChild(stage);
+
+  autofitExport(page);
+  return stage;
+}
+function unmountStage(){
+  const s = document.getElementById('exportStage');
+  if(s) s.remove();
+}
+
+/* ---------- Preview modal ---------- */
+function openExportModal(){
+  const overlay = $('exportModal');
+  overlay.classList.add('show');
+  renderModalControls();
+  buildModalPreview();
+}
+function closeExportModal(){
+  $('exportModal').classList.remove('show');
+}
+function renderModalControls(){
+  document.querySelectorAll('#modalOrientSeg button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.v === S.orientation);
+  });
+  $('modalTitleToggle').checked = S.exportTitle;
+}
+function buildModalPreview(){
+  const wrap = $('exportPreviewWrap');
+  wrap.innerHTML = '';
+
+  const orientation = resolveOrientation();
+  const page = buildExportPage(orientation);
+
+  /* Measure at natural size */
+  page.style.position = 'absolute';
+  page.style.left = '-20000px';
+  page.style.top = '0';
+  document.body.appendChild(page);
+
+  autofitExport(page);
+
+  const pw = page.offsetWidth;
+  const ph = page.offsetHeight;
+
+  /* Available viewport for the preview */
+  const maxW = Math.min(window.innerWidth  * 0.88, 860) - 44;
+  const maxH = Math.min(window.innerHeight * 0.62, 720);
+  const scale = Math.min(maxW / pw, maxH / ph, 1);
+
+  const holder = document.createElement('div');
+  holder.className = 'export-preview-holder';
+  holder.style.width  = (pw * scale) + 'px';
+  holder.style.height = (ph * scale) + 'px';
+
+  page.style.position = 'absolute';
+  page.style.left = '0';
+  page.style.top = '0';
+  page.style.transformOrigin = 'top left';
+  page.style.transform = `scale(${scale})`;
+  page.style.margin = '0';
+
+  holder.appendChild(page);
+  wrap.appendChild(holder);
+}
+
+/* ---------- PNG at 300 dpi ---------- */
+async function exportPNG(){
+  closeExportModal();
+  const overlay = $('exportModal');
+
+  try{
+    if(document.fonts && document.fonts.ready) await document.fonts.ready;
+    await new Promise(r => requestAnimationFrame(r));
+
+    const orientation = resolveOrientation();
+    const stage = mountStage(orientation);
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+    const page = stage.querySelector('.export-page');
+    const shortEdge = Math.min(page.offsetWidth, page.offsetHeight);
+    const scale = Math.max(1, PNG_SHORT_EDGE / shortEdge);
+
+    const canvas = await html2canvas(page, {
+      scale,
+      backgroundColor: '#ffffff',
+      useCORS: true,
+      logging: false,
+    });
+
+    const data = canvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.download = `weekly-schedule-${dateStamp()}.png`;
+    a.href = data;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    notify(`PNG ذخیره شد (${canvas.width}×${canvas.height})`, 'success');
+  }catch(err){
+    console.error(err);
+    notify('خطا در ساخت تصویر', 'error');
+  }finally{
+    unmountStage();
+    overlay.classList.remove('show');
+  }
+}
+
+/* ---------- Print / Save as PDF ---------- */
+async function printSchedule(){
+  const overlay = $('exportModal');
+  const btn = $('modalPrintBtn');
+  const original = btn.innerHTML;
+  btn.innerHTML = '⏳ آماده‌سازی...';
+  btn.disabled = true;
+
+  try{
+    if(document.fonts && document.fonts.ready) await document.fonts.ready;
+
+    const orientation = resolveOrientation();
+
+    /* 1. Update @page rule FIRST, before anything else */
+    applyPageRule(orientation);
+
+    /* 2. Mount the fresh full-size page off-screen */
+    mountStage(orientation);
+
+    /* 3. Hide the modal so it can't interfere */
+    overlay.classList.remove('show');
+
+    /* 4. Wait for layout + style recalculation, then print */
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    await new Promise(r => setTimeout(r, 60));
+
+    window.print();
+  }catch(err){
+    console.error(err);
+    notify('خطا در آماده‌سازی چاپ', 'error');
+  }finally{
+    btn.innerHTML = original;
+    btn.disabled = false;
+  }
+}
+
+/* ============================================================
+   Init
+   ============================================================ */
 function init(){
-  buildTable();renderPalettes();renderPresets();renderHeaders();renderClasses();
-  $('randomBtn').addEventListener('click',randomize);
-  $('exportBtn').addEventListener('click',exportJPG);
-  $('clearBtn').addEventListener('click',clearAll);
-  $('addHeaderBtn').addEventListener('click',addHeader);
-  addEventListener('scroll',()=>{if(Date.now()-lastFocusTime<600)return;hideSuggestions();closePicker()},true);
-  addEventListener('resize',()=>{hideSuggestions();closePicker()});
-  document.addEventListener('mousedown',e=>{
-    if($('autocomplete').contains(e.target))return;
-    if(e.target.closest&&e.target.closest('.data-cell')){}else{hideSuggestions()}
-    if(!$('colorPicker').contains(e.target)&&!e.target.classList.contains('class-dot'))closePicker();
+  buildTable();
+  renderPalettes();
+  renderPresets();
+  renderHeaders();
+  renderClasses();
+
+  $('randomBtn').addEventListener('click', randomize);
+  $('clearBtn').addEventListener('click', clearAll);
+  $('addHeaderBtn').addEventListener('click', addHeader);
+
+  /* Export modal */
+  $('exportOpenBtn').addEventListener('click', openExportModal);
+  $('modalCloseBtn').addEventListener('click', closeExportModal);
+  $('modalPrintBtn').addEventListener('click', printSchedule);
+  $('modalPngBtn').addEventListener('click', exportPNG);
+
+  /* Click outside the modal card closes it */
+  $('exportModal').addEventListener('mousedown', e => {
+    if(e.target === $('exportModal')) closeExportModal();
+  });
+
+  /* Orientation inside the modal */
+  $('modalOrientSeg').addEventListener('click', e => {
+    const b = e.target.closest('button[data-v]');
+    if(!b) return;
+    S.orientation = b.dataset.v;
+    saveSettings();
+    renderModalControls();
+    buildModalPreview();
+  });
+
+  /* Title toggle inside the modal */
+  $('modalTitleToggle').addEventListener('change', e => {
+    S.exportTitle = e.target.checked;
+    saveSettings();
+    buildModalPreview();
+  });
+
+  /* Rebuild the preview if the window resizes while the modal is open */
+  addEventListener('resize', () => {
+    hideSuggestions(); closePicker();
+    if($('exportModal').classList.contains('show')) buildModalPreview();
+  });
+
+  /* Escape closes the modal */
+  addEventListener('keydown', e => {
+    if(e.key === 'Escape' && $('exportModal').classList.contains('show')){
+      closeExportModal();
+    }
+  });
+
+  addEventListener('scroll', () => {
+    if(Date.now() - lastFocusTime < 600) return;
+    hideSuggestions();
+    closePicker();
+  }, true);
+
+  document.addEventListener('mousedown', e => {
+    if($('autocomplete').contains(e.target)) return;
+    if(!(e.target.closest && e.target.closest('.data-cell'))) hideSuggestions();
+    if(!$('colorPicker').contains(e.target) && !e.target.classList.contains('class-dot')) closePicker();
+  });
+
+  /* Ctrl+P / browser print: make sure we always have a valid document */
+  addEventListener('beforeprint', () => {
+    const orientation = resolveOrientation();
+    applyPageRule(orientation);
+    mountStage(orientation);
+  });
+  addEventListener('afterprint', () => {
+    /* Only clean up if the user didn't trigger our own print flow */
+    unmountStage();
   });
 }
+
 init();
 </script>
 </body>
