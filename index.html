@@ -112,7 +112,11 @@ body{
   .planner-table th{padding:11px 4px;font-size:.78rem}
   .day-cell{font-size:.82rem;padding:12px 4px}
   .data-cell{height:72px}
-  .cell-input{font-size:.78rem;padding:4px}
+  /* 16px minimum on focusable inputs: prevents iOS Safari focus-zoom,
+     which fires `resize` right after a tap and used to kill the
+     autocomplete popup before the user could see it. */
+  .cell-input{font-size:16px;padding:4px}
+  .header-input{font-size:16px}
   .page-title{font-size:1.15rem}
 }
 
@@ -147,8 +151,9 @@ body{
   position:fixed;inset:0;background:rgba(15,23,42,.65);backdrop-filter:blur(6px);
   z-index:4000;display:flex;align-items:center;justify-content:center;padding:16px;
   opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s;
+  pointer-events:none;
 }
-.export-modal-overlay.show{opacity:1;visibility:visible}
+.export-modal-overlay.show{opacity:1;visibility:visible;pointer-events:auto}
 .export-modal{
   background:#fff;border-radius:16px;width:100%;max-width:900px;max-height:94vh;
   display:flex;flex-direction:column;overflow:hidden;
@@ -193,20 +198,22 @@ body{
   print-color-adjust:exact !important;
 }
 
-.export-head{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1mm;
-}
-.export-head-title{font-size:15pt;font-weight:600;color:#1e293b;line-height:1.2}
-.export-head-date{font-size:9pt;font-weight:400;color:#64748b;line-height:1.2}
-
 .export-table{
   width:100%;border-collapse:collapse;table-layout:fixed;text-align:center;
-  font-size:14px;
+  /* Base font for the DATA cells; A4 autofit scales this up (max 36px)
+     and the header/day labels are set as small em fractions of it. */
+  font-size:16px;
 }
+/* Header row: same height as the day rows, and the labels are only a
+   little smaller than the data type (kept subdued by color/weight) so
+   the header stays legible even in scaled-down previews and prints */
+/* NOTE: no letter-spacing here — html2canvas mis-applies letter-spacing on
+   RTL text and it visibly mangled the header glyphs in PNG exports (the
+   browser's own print engine, i.e. the PDF path, handled it fine). */
 .export-table th{
-  background:#f8fafc;color:#475569;font-weight:500;font-size:.95em;
+  background:#f8fafc;color:#94a3b8;font-weight:500;font-size:.9em;
   border:1px solid #e2e8f0;border-bottom:1.5px solid #cbd5e1;
-  padding:2mm 1.5mm;vertical-align:middle;
+  padding:1.5mm 1mm;vertical-align:middle;
   word-break:break-word;line-height:1.3;
 }
 .export-table td{
@@ -214,21 +221,49 @@ body{
   padding:2mm 1.5mm;vertical-align:middle;
   word-break:break-word;line-height:1.35;
 }
-.export-corner{font-size:.95em}
+.export-corner{font-size:1em}
 .export-day{
-  background:#f8fafc;color:#1e293b;font-weight:500;
-  font-size:1.12em;white-space:nowrap;
+  background:#f8fafc;color:#64748b;font-weight:600;
+  font-size:.7em;white-space:nowrap;
+  padding:1.5mm 1mm;
 }
+
+/* Black-and-white mode: plain white cells, black text, slightly stronger
+   grid, and one light-gray for the header row + day column (structure) */
+.export-table.bw td{background:#fff;color:#111;border-color:#9a9a9a}
+.export-table.bw th{border-color:#9a9a9a;border-bottom:2px solid #555}
+.export-table.bw th,.export-table.bw .export-day{background:#e9e9e9;color:#333}
 .export-cell{font-size:1em;font-weight:400}
 
 /* ============================================================
-   PRINT — one page, correct orientation, no browser furniture
+   DYNAMIC EXPORT — content-sized table (like the original)
+   ============================================================ */
+.export-dynamic{
+  display:block;background:#fff;box-sizing:border-box;direction:rtl;
+  font-family:'Vazirmatn',Tahoma,Arial,sans-serif;color:#1e293b;
+}
+.export-dynamic,.export-dynamic *{
+  -webkit-print-color-adjust:exact !important;
+  print-color-adjust:exact !important;
+}
+/* Cells hold one or a few words — keep the type large */
+.export-dynamic .export-table{table-layout:auto;width:auto;margin:0 auto;font-size:26px}
+.export-dynamic .export-table th{white-space:nowrap;padding:14px 22px}
+.export-dynamic .export-table td{padding:24px 22px;min-width:140px}
+.export-dynamic .export-table td.export-day{white-space:nowrap;min-width:96px;font-size:1.05em}
+
+/* ============================================================
+   PRINT — no browser furniture.
+   A4 mode: the page fills the printable area exactly (a height:100%
+   chain), so it always lands on ONE page even when the browser or
+   physical paper differ slightly from 210×297mm.
+   Dynamic mode: natural size with normal margins; flows if needed.
    ============================================================ */
 @media print{
   html,body{
     margin:0 !important;padding:0 !important;
     background:#fff !important;overflow:visible !important;
-    width:auto !important;height:auto !important;
+    width:auto !important;height:100% !important;
   }
   body > *:not(#exportStage){display:none !important}
 
@@ -237,22 +272,34 @@ body{
     display:block !important;pointer-events:auto !important;
     margin:0 !important;padding:0 !important;z-index:auto !important;
   }
-  .export-page{
-    margin:0 !important;
-    box-shadow:none !important;
+
+  /* ---- A4: one page, always ---- */
+  #exportStage.a4-print{height:100% !important}
+  #exportStage.a4-print .export-page{
+    display:flex !important;flex-direction:column !important;
+    width:100% !important;height:100% !important;
+    margin:0 !important;box-shadow:none !important;
     page-break-after:avoid !important;
     page-break-inside:avoid !important;
     break-inside:avoid !important;
     break-after:avoid !important;
   }
-  .export-table{page-break-inside:avoid !important}
-  .export-table tr{page-break-inside:avoid !important}
+  #exportStage.a4-print .export-table{
+    flex:1 1 auto !important;min-height:0 !important;
+    height:auto !important;
+    page-break-inside:avoid !important;
+  }
+
+  /* ---- Dynamic: content-sized ---- */
+  #exportStage.dyn-print .export-dynamic{margin:0 auto;max-width:100%}
+  #exportStage.dyn-print .export-table{page-break-inside:auto !important}
+  #exportStage.dyn-print .export-table tr{page-break-inside:avoid !important;break-inside:avoid !important}
 }
 </style>
 
 <!-- Static print page rule. JS only rewrites its content, which browsers
      handle far more reliably than injecting a whole new <style> tag. -->
-<style id="printPageRule" media="print">@page { size: A4 portrait; margin: 0; }</style>
+<style id="printPageRule" media="print">@page { size: A4 landscape; margin: 0; }</style>
 </head>
 <body>
 
@@ -268,7 +315,7 @@ body{
       <div class="btn-row">
         <button class="btn btn-primary" id="exportOpenBtn">📤 پیش‌نمایش و خروجی</button>
       </div>
-      <p class="hint">پیش‌نمایش A4، سپس چاپ / ذخیره PDF یا دانلود PNG با کیفیت ۳۰۰ dpi.</p>
+      <p class="hint">حالت «پویا»: سایز واقعی جدول — حالت «A4»: یک صفحهٔ استاندارد افقی. سپس چاپ / ذخیره PDF یا دانلود PNG با کیفیت ۳۰۰ dpi. برای پرینترهای بدون رنگ، حالت «سیاه‌وسفید» را فعال کنید.</p>
     </div>
 
     <div class="sec">
@@ -304,12 +351,11 @@ body{
   <div class="export-modal" role="dialog" aria-modal="true">
     <div class="export-modal-head">
       <h3>پیش‌نمایش خروجی</h3>
-      <div class="seg" id="modalOrientSeg">
-        <button type="button" data-v="auto">خودکار</button>
-        <button type="button" data-v="portrait">عمودی</button>
-        <button type="button" data-v="landscape">افقی</button>
+      <div class="seg" id="modalModeSeg">
+        <button type="button" data-v="dynamic">پویا</button>
+        <button type="button" data-v="a4">A4</button>
       </div>
-      <label class="check-row"><input type="checkbox" id="modalTitleToggle"> عنوان و تاریخ</label>
+      <label class="check-row"><input type="checkbox" id="modalBwToggle"> سیاه‌وسفید</label>
     </div>
     <div class="export-modal-body">
       <div class="export-preview-wrap" id="exportPreviewWrap"></div>
@@ -351,9 +397,10 @@ const MARGIN = 10;
 /* 2mm slack + overflow:hidden on the page = guaranteed single page in
    every browser. Browsers add sub-pixel rounding; without slack the
    content spills onto a second page even when it "fits" mathematically. */
-const PAGE_SLACK = 2;
-const TITLE_BLOCK = 15;
+const PAGE_SLACK = 3;
 const PNG_SHORT_EDGE = 2480;
+/* Dynamic-mode print margin (mm). The table itself is content-sized. */
+const DYN_PRINT_MARGIN = 12;
 
 const SETTINGS_KEY = 'planner.export.v2';
 
@@ -362,23 +409,58 @@ const S = {
   grid:[],
   colors:{},
   palette:'Pastel',
-  orientation:'auto',
-  exportTitle:false,
+  exportMode:'dynamic',
+  exportBW:false,
 };
 S.grid = DAYS.map(() => S.headers.map(() => ''));
 
 (function loadSettings(){
   try{
     const raw = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
-    if(['auto','portrait','landscape'].includes(raw.orientation)) S.orientation = raw.orientation;
-    if(typeof raw.exportTitle === 'boolean') S.exportTitle = raw.exportTitle;
+    if(['dynamic','a4'].includes(raw.exportMode)) S.exportMode = raw.exportMode;
+    if(typeof raw.exportBW === 'boolean') S.exportBW = raw.exportBW;
   }catch(_){}
 })();
 function saveSettings(){
-  try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify({ orientation:S.orientation, exportTitle:S.exportTitle })); }catch(_){}
+  try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify({ exportMode:S.exportMode, exportBW:S.exportBW })); }catch(_){}
 }
 
-let lastFocusTime = 0;
+/* ---------- Data persistence ----------
+   Grid, column headers, class colors and palette are stored in
+   localStorage and survive refresh/close. They are only removed when the
+   user clears them manually (or clears their browser data). */
+const DATA_KEY = 'planner.data.v1';
+let persistTimer = null;
+function persist(){
+  clearTimeout(persistTimer);
+  persistTimer = setTimeout(saveData, 250);
+}
+function saveData(){
+  try{
+    localStorage.setItem(DATA_KEY, JSON.stringify({ v:1, headers:S.headers, grid:S.grid, colors:S.colors, palette:S.palette }));
+  }catch(_){}
+}
+(function loadData(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(DATA_KEY) || 'null');
+    if(!raw || typeof raw !== 'object') return;
+    if(Array.isArray(raw.headers) && raw.headers.length && raw.headers.every(h => typeof h === 'string')){
+      S.headers = raw.headers.slice(0, 20);
+    }
+    S.grid = DAYS.map((_, d) => S.headers.map((_, t) =>
+      (raw.grid && raw.grid[d] && typeof raw.grid[d][t] === 'string') ? raw.grid[d][t] : ''));
+    if(raw.palette && PALETTES[raw.palette]) S.palette = raw.palette;
+    if(raw.colors && typeof raw.colors === 'object' && !Array.isArray(raw.colors)){
+      const clean = {};
+      for(const [k, v] of Object.entries(raw.colors)){
+        if(typeof k === 'string' && (typeof v === 'string' || v === null)) clean[k] = v;
+      }
+      S.colors = clean;
+    }
+    cleanupOrphans();
+  }catch(_){}
+})();
+
 let hideTimer = null;
 
 const $ = id => document.getElementById(id);
@@ -418,15 +500,14 @@ function textColorFor(hex){
   const{h,s}=rgbToHsl(r,g,b);
   return lum>0.55 ? hslToHex(h,Math.min(s+10,55),24) : hslToHex(h,Math.min(s,40),93);
 }
+/* Black-and-white export is pure CSS (see .export-table.bw): plain white
+   cells with black text and a single light-gray header/day structure. No
+   per-class fills, no patterns — kept deliberately simple for printers. */
 function usedColors(except){const u=new Set();for(const[k,v]of Object.entries(S.colors))if(v&&k!==except)u.add(v);return u}
 function nextColor(){const u=usedColors();return paletteColors().find(c=>!u.has(c))||null}
 function cleanupOrphans(){const used=new Set();S.grid.forEach(r=>r.forEach(v=>v&&used.add(v)));for(const k of Object.keys(S.colors))if(!used.has(k))delete S.colors[k]}
 function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
 
-function persianDateLong(){
-  try{ return new Intl.DateTimeFormat('fa-IR',{weekday:'long',year:'numeric',month:'long',day:'numeric'}).format(new Date()); }
-  catch(_){ return ''; }
-}
 function dateStamp(){
   try{
     return new Intl.DateTimeFormat('fa-IR-u-nu-latn',{year:'numeric',month:'2-digit',day:'2-digit'})
@@ -463,7 +544,7 @@ function buildTable(){
       inp.className='cell-input';inp.type='text';inp.value=S.grid[d][t];
       inp.dataset.d=d;inp.dataset.t=t;inp.autocomplete='off';inp.spellcheck=false;inp.placeholder='—';
       inp.addEventListener('input',()=>handleCellInput(inp));
-      inp.addEventListener('focus',()=>{lastFocusTime=Date.now();if(hideTimer){clearTimeout(hideTimer);hideTimer=null}showSuggestions(inp)});
+      inp.addEventListener('focus',()=>{if(hideTimer){clearTimeout(hideTimer);hideTimer=null}showSuggestions(inp)});
       inp.addEventListener('blur',()=>{hideTimer=setTimeout(()=>{hideSuggestions();hideTimer=null},200)});
       inp.addEventListener('keydown',e=>handleCellKey(e,inp));
       td.appendChild(inp);tr.appendChild(td);
@@ -488,7 +569,7 @@ function handleCellInput(inp){
   const d=+inp.dataset.d,t=+inp.dataset.t,val=inp.value.trim();
   S.grid[d][t]=val;cleanupOrphans();
   if(val&&!(val in S.colors))S.colors[val]=nextColor();
-  updateCellStyle(inp);renderClasses();showSuggestions(inp);
+  updateCellStyle(inp);renderClasses();showSuggestions(inp);persist();
 }
 function handleCellKey(e,inp){
   const dd=$('autocomplete'),open=dd.style.display==='block';
@@ -530,6 +611,14 @@ function highlightMatch(original,query){
   return escapeHtml(original.slice(0,s))+'<mark>'+escapeHtml(original.slice(s,e))+'</mark>'+escapeHtml(original.slice(e));
 }
 const hideSuggestions=()=>{$('autocomplete').style.display='none'};
+/* If the focused cell is still active, re-show/reposition the dropdown;
+   otherwise hide it. Called on scroll/resize — e.g. iOS Safari's focus zoom
+   fires `resize` right after a tap, which used to kill the popup. */
+function syncSuggestion(){
+  const inp=document.activeElement;
+  if(inp && inp.classList && inp.classList.contains('cell-input')) showSuggestions(inp);
+  else hideSuggestions();
+}
 function applySuggestion(inp,name){inp.value=name;handleCellInput(inp);hideSuggestions()}
 
 /* ============================================================
@@ -559,7 +648,7 @@ function renameClass(o,n){
   const color=S.colors[o];delete S.colors[o];if(!(n in S.colors))S.colors[n]=color;
   S.grid=S.grid.map(row=>row.map(v=>v===o?n:v));
   document.querySelectorAll('.cell-input').forEach(inp=>{const d=+inp.dataset.d,t=+inp.dataset.t;inp.value=S.grid[d][t];updateCellStyle(inp)});
-  renderClasses();
+  renderClasses();persist();
 }
 function openPicker(name,anchor){
   const pk=$('colorPicker'),cur=S.colors[name];pk.innerHTML='';
@@ -574,7 +663,7 @@ function openPicker(name,anchor){
   if(cur){
     const foot=document.createElement('div');foot.className='color-picker-footer';
     const u=document.createElement('button');u.className='unassign-btn';u.textContent='حذف رنگ';
-    u.addEventListener('click',()=>{S.colors[name]=null;refreshCells();renderClasses();closePicker()});
+    u.addEventListener('click',()=>{S.colors[name]=null;refreshCells();renderClasses();closePicker();persist()});
     foot.appendChild(u);pk.appendChild(foot);
   }
   pk.style.display='block';
@@ -589,7 +678,7 @@ function openPicker(name,anchor){
 const closePicker=()=>{$('colorPicker').style.display='none'};
 function assignColor(name,color){
   for(const[k,v]of Object.entries(S.colors))if(v===color&&k!==name)S.colors[k]=null;
-  S.colors[name]=color;refreshCells();renderClasses();
+  S.colors[name]=color;refreshCells();renderClasses();persist();
 }
 
 const PREVIEW={};for(const k in PALETTES)PREVIEW[k]=shuffle([...PALETTES[k].colors]).slice(0,5);
@@ -605,7 +694,7 @@ function renderPalettes(){
 function applyPalette(name){
   S.palette=name;const colors=paletteColors(),used=new Set();
   classNames().forEach(cn=>{const c=colors.find(x=>!used.has(x));if(c){S.colors[cn]=c;used.add(c)}else S.colors[cn]=null});
-  renderPalettes();refreshCells();renderClasses();
+  renderPalettes();refreshCells();renderClasses();persist();
 }
 
 function renderPresets(){
@@ -625,6 +714,7 @@ function renderHeaders(){
       if(fixed!==inp.value){inp.value=fixed;try{inp.setSelectionRange(pos,pos)}catch(_){}}
       S.headers[i]=inp.value;
       const th=document.querySelector(`#tableHead th[data-col="${i}"]`);if(th)th.textContent=inp.value;
+      persist();
     });
     const del=document.createElement('button');del.className='icon-btn';del.textContent='×';del.title='حذف ستون';
     del.addEventListener('click',()=>removeHeader(i));
@@ -636,46 +726,109 @@ async function removeHeader(i){
   const hasContent=S.grid.some(row=>row[i]);
   if(hasContent){const ok=await confirmDialog('این ستون حاوی اطلاعات است. حذف شود؟');if(!ok)return}
   S.headers.splice(i,1);S.grid.forEach(row=>row.splice(i,1));
-  buildTable();renderHeaders();cleanupOrphans();renderClasses();notify('ستون حذف شد');
+  buildTable();renderHeaders();cleanupOrphans();renderClasses();persist();notify('ستون حذف شد');
 }
 function addHeader(){
   S.headers.push('ستون '+(S.headers.length+1));S.grid.forEach(row=>row.push(''));
-  buildTable();renderHeaders();notify('ستون اضافه شد','success');
+  buildTable();renderHeaders();persist();notify('ستون اضافه شد','success');
 }
 function applyPreset(preset){
   S.headers=[...preset.headers];S.grid=S.grid.map(row=>preset.headers.map((_,i)=>row[i]||''));
-  buildTable();renderHeaders();cleanupOrphans();renderClasses();notify('قالب ستون‌ها اعمال شد','success');
+  buildTable();renderHeaders();cleanupOrphans();renderClasses();persist();notify('قالب ستون‌ها اعمال شد','success');
 }
 
 function randomize(){
   const names=classNames();if(!names.length){notify('ابتدا چند کلاس وارد کنید','error');return}
   const shuffled=shuffle(paletteColors());
   names.forEach((n,i)=>{S.colors[n]=shuffled[i%shuffled.length]});
-  refreshCells();renderClasses();notify('رنگ‌بندی تصادفی اعمال شد','success');
+  refreshCells();renderClasses();persist();notify('رنگ‌بندی تصادفی اعمال شد','success');
 }
 async function clearAll(){
   const ok=await confirmDialog('همه کلاس‌ها پاک شوند؟');if(!ok)return;
   S.grid=DAYS.map(()=>S.headers.map(()=>''));S.colors={};
   document.querySelectorAll('.cell-input').forEach(inp=>{inp.value='';updateCellStyle(inp)});
-  renderClasses();notify('همه پاک شد','success');
+  renderClasses();persist();notify('همه پاک شد','success');
 }
 
 /* ============================================================
    EXPORT
    ============================================================ */
 
-function resolveOrientation(){
-  if(S.orientation === 'portrait' || S.orientation === 'landscape') return S.orientation;
-  return S.headers.length > 6 ? 'landscape' : 'portrait';
-}
+/* A4 export is landscape-only */
+const resolveOrientation = () => 'landscape';
 
 /* Rewrite the *content* of the static print style element. This is the
    reliable way to change @page size at runtime in Chrome/Firefox. */
-function applyPageRule(orientation){
+function applyPageRule(orientation, margin = 0){
   const el = document.getElementById('printPageRule');
-  if(el) el.textContent = `@page { size: A4 ${orientation}; margin: 0; }`;
+  if(el) el.textContent = `@page { size: A4 ${orientation}; margin: ${margin}; }`;
 }
 
+/* Shared table builder — no inline sizing, each export mode styles it.
+   Rows are appended FLAT (no thead/tbody): html2canvas renders
+   thead/tbody as separate blocks and has been seen to break the first
+   row's height in PNG exports across browsers, while the browser's own
+   print engine (the PDF path) handles thead/tbody fine. A flat table
+   behaves identically in both. */
+function buildExportTableEl(){
+  /* html2canvas mangles Persian text containing ZWNJ (U+200C, e.g.
+     زیست‌شناسی) — it splits the run and the glyphs come out corrupted.
+     A plain space renders perfectly, so export nodes only (app data and
+     the live table are untouched). */
+  const exportText = s => String(s).replace(/\u200C+/g, ' ').trim();
+
+  const table = document.createElement('table');
+  table.className = 'export-table' + (S.exportBW ? ' bw' : '');
+
+  const cg = document.createElement('colgroup');
+  cg.appendChild(document.createElement('col'));
+  S.headers.forEach(() => cg.appendChild(document.createElement('col')));
+  table.appendChild(cg);
+
+  /* Header row */
+  const hr = document.createElement('tr');
+  const corner = document.createElement('th');
+  corner.className = 'export-corner';
+  corner.textContent = 'روز';
+  hr.appendChild(corner);
+  S.headers.forEach(hd => {
+    const th = document.createElement('th');
+    th.textContent = exportText(hd);
+    hr.appendChild(th);
+  });
+  table.appendChild(hr);
+
+  /* Day rows */
+  DAYS.forEach((day, d) => {
+    const tr = document.createElement('tr');
+    const dayTd = document.createElement('td');
+    dayTd.className = 'export-day';
+    /* Day names are fixed strings — keep their ZWNJ (سه‌شنبه) intact.
+       The ZWNJ→space rewrite below is only for user-typed content, where
+       wrapped runs got mangled by html2canvas. */
+    dayTd.textContent = day;
+    tr.appendChild(dayTd);
+
+    S.headers.forEach((_, t) => {
+      const val = S.grid[d][t];
+      const td = document.createElement('td');
+      td.className = 'export-cell';
+      td.textContent = exportText(val);
+      /* B&W mode (option A): no per-class fills — plain white cells with
+         black text; the gray structure comes from CSS only. */
+      if(!S.exportBW && val && S.colors[val]){
+        td.style.background = S.colors[val];
+        td.style.color = textColorFor(S.colors[val]);
+      }
+      tr.appendChild(td);
+    });
+
+    table.appendChild(tr);
+  });
+  return table;
+}
+
+/* ---------- A4 mode: one fixed page, fitted to the paper ---------- */
 function buildExportPage(orientation){
   const { w, h } = A4[orientation];
   const pageH    = h - PAGE_SLACK;
@@ -688,91 +841,49 @@ function buildExportPage(orientation){
   page.style.height  = pageH + 'mm';
   page.style.padding = MARGIN + 'mm';
 
-  let titleH = 0;
-  if(S.exportTitle){
-    titleH = TITLE_BLOCK;
-    const head = document.createElement('div');
-    head.className = 'export-head';
-    head.style.height = titleH + 'mm';
+  /* No title block: the table fills the page. Every row — the header row
+     plus the five day rows — gets equal height, so the header reads as a
+     real row instead of a thin strip. */
+  const tableH = contentH;
+  const rowH   = tableH / (DAYS.length + 1);
 
-    const t = document.createElement('div');
-    t.className = 'export-head-title';
-    t.textContent = 'برنامه هفتگی';
-
-    const sub = document.createElement('div');
-    sub.className = 'export-head-date';
-    sub.textContent = persianDateLong();
-
-    head.appendChild(t);
-    head.appendChild(sub);
-    page.appendChild(head);
-  }
-
-  const tableH   = contentH - titleH;
-  const headRowH = Math.min(18, Math.max(11, tableH * 0.06));
-  const dayRowH  = (tableH - headRowH) / DAYS.length;
-
-  const dayColW  = Math.min(28, Math.max(18, contentW * 0.13));
+  const dayColW  = Math.min(30, Math.max(18, contentW * 0.14));
   const dataColW = (contentW - dayColW) / S.headers.length;
 
-  const table = document.createElement('table');
-  table.className = 'export-table';
+  const table = buildExportTableEl();
   table.style.height = tableH + 'mm';
   table.dataset.targetHeight = String(tableH);
-
-  const cg = document.createElement('colgroup');
-  const c0 = document.createElement('col'); c0.style.width = dayColW + 'mm'; cg.appendChild(c0);
-  S.headers.forEach(() => {
-    const c = document.createElement('col'); c.style.width = dataColW + 'mm'; cg.appendChild(c);
-  });
-  table.appendChild(cg);
-
-  const thead = document.createElement('thead');
-  const hr = document.createElement('tr');
-  hr.style.height = headRowH + 'mm';
-
-  const corner = document.createElement('th');
-  corner.className = 'export-corner';
-  corner.textContent = 'روز';
-  hr.appendChild(corner);
-
-  S.headers.forEach(hd => {
-    const th = document.createElement('th');
-    th.textContent = hd;
-    hr.appendChild(th);
-  });
-  thead.appendChild(hr);
-  table.appendChild(thead);
-
-  const tbody = document.createElement('tbody');
-  DAYS.forEach((day, d) => {
-    const tr = document.createElement('tr');
-    tr.style.height = dayRowH + 'mm';
-
-    const dayTd = document.createElement('td');
-    dayTd.className = 'export-day';
-    dayTd.textContent = day;
-    tr.appendChild(dayTd);
-
-    S.headers.forEach((_, t) => {
-      const val = S.grid[d][t];
-      const color = val ? S.colors[val] : null;
-      const td = document.createElement('td');
-      td.className = 'export-cell';
-      td.textContent = val || '';
-      if(color){
-        td.style.background = color;
-        td.style.color = textColorFor(color);
-      }
-      tr.appendChild(td);
-    });
-
-    tbody.appendChild(tr);
-  });
-  table.appendChild(tbody);
+  table.dataset.dayColMm = String(dayColW);
+  const cols = table.querySelectorAll('col');
+  cols[0].style.width = dayColW + 'mm';
+  for(let i = 1; i < cols.length; i++) cols[i].style.width = dataColW + 'mm';
+  const rows = table.querySelectorAll('tr');
+  rows.forEach(r => r.style.height = rowH + 'mm');
   page.appendChild(table);
 
   return page;
+}
+
+/* ---------- Dynamic mode: content-sized (like the original export) ---------- */
+function buildDynamicExport(){
+  const wrap = document.createElement('div');
+  wrap.className = 'export-dynamic';
+  wrap.appendChild(buildExportTableEl());
+  return wrap;
+}
+
+/* Auto-orientation for dynamic mode: portrait if the natural table
+   width fits the printable width, otherwise landscape. */
+function resolveDynamicOrientation(){
+  const wrap = buildDynamicExport();
+  wrap.style.position = 'absolute';
+  wrap.style.left = '-20000px';
+  wrap.style.top = '0';
+  document.body.appendChild(wrap);
+  const w = wrap.offsetWidth;
+  wrap.remove();
+  const px = mm => mm * (96 / 25.4);
+  return w > px(A4.portrait.w - DYN_PRINT_MARGIN * 2) ? 'landscape' : 'portrait';
 }
 
 function autofitExport(page){
@@ -782,30 +893,43 @@ function autofitExport(page){
   if(!targetMm) return;
   const targetPx = targetMm * (96 / 25.4);
 
-  let size = 14;
+  /* The data cells hold one or a few words, so the type goes AS BIG as the
+     page allows: start at 36px and shrink only for real overflow (a 2px
+     tolerance ignores sub-pixel rounding), never below 14px (≈10.5pt).
+     Two constraints: content must fit vertically, and the day column
+     (nowrap, .7em) must fit the widest day name horizontally. */
+  const longestDay = DAYS.reduce((a, b) => b.length > a.length ? b : a, '');
+  const measure = document.createElement('canvas').getContext('2d');
+  const dayColPx = parseFloat(table.dataset.dayColMm || '30') * (96 / 25.4) - 12;
+
+  let size = 36;
   table.style.fontSize = size + 'px';
 
   let guard = 0;
-  while(page.scrollHeight > page.clientHeight && size > 8.5 && guard++ < 15){
+  while(guard++ < 60 && size > 14){
+    const verticalOverflow = page.scrollHeight > page.clientHeight + 2;
+    measure.font = `600 ${size * 0.7}px Vazirmatn, Tahoma, Arial, sans-serif`;
+    const dayFits = measure.measureText(longestDay).width <= dayColPx;
+    if(!verticalOverflow && dayFits) break;
     size -= 0.5;
     table.style.fontSize = size + 'px';
   }
 }
 
-/* Mount a fresh full-size export page off-screen. Used for print + PNG. */
-function mountStage(orientation){
+/* Mount a fresh export root off-screen. Used for print + PNG. */
+function mountStage(mode, orientation){
   const old = document.getElementById('exportStage');
   if(old) old.remove();
 
   const stage = document.createElement('div');
   stage.id = 'exportStage';
-  stage.className = 'export-stage';
+  stage.className = 'export-stage ' + (mode === 'a4' ? 'a4-print' : 'dyn-print');
 
-  const page = buildExportPage(orientation);
-  stage.appendChild(page);
+  const node = mode === 'a4' ? buildExportPage(orientation) : buildDynamicExport();
+  stage.appendChild(node);
   document.body.appendChild(stage);
 
-  autofitExport(page);
+  if(mode === 'a4') autofitExport(node);
   return stage;
 }
 function unmountStage(){
@@ -824,28 +948,28 @@ function closeExportModal(){
   $('exportModal').classList.remove('show');
 }
 function renderModalControls(){
-  document.querySelectorAll('#modalOrientSeg button').forEach(b=>{
-    b.classList.toggle('active', b.dataset.v === S.orientation);
+  document.querySelectorAll('#modalModeSeg button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.v === S.exportMode);
   });
-  $('modalTitleToggle').checked = S.exportTitle;
+  $('modalBwToggle').checked = S.exportBW;
 }
 function buildModalPreview(){
   const wrap = $('exportPreviewWrap');
   wrap.innerHTML = '';
 
-  const orientation = resolveOrientation();
-  const page = buildExportPage(orientation);
+  const isA4 = S.exportMode === 'a4';
+  const node = isA4 ? buildExportPage(resolveOrientation()) : buildDynamicExport();
 
   /* Measure at natural size */
-  page.style.position = 'absolute';
-  page.style.left = '-20000px';
-  page.style.top = '0';
-  document.body.appendChild(page);
+  node.style.position = 'absolute';
+  node.style.left = '-20000px';
+  node.style.top = '0';
+  document.body.appendChild(node);
 
-  autofitExport(page);
+  if(isA4) autofitExport(node);
 
-  const pw = page.offsetWidth;
-  const ph = page.offsetHeight;
+  const pw = node.offsetWidth;
+  const ph = node.offsetHeight;
 
   /* Available viewport for the preview */
   const maxW = Math.min(window.innerWidth  * 0.88, 860) - 44;
@@ -857,14 +981,14 @@ function buildModalPreview(){
   holder.style.width  = (pw * scale) + 'px';
   holder.style.height = (ph * scale) + 'px';
 
-  page.style.position = 'absolute';
-  page.style.left = '0';
-  page.style.top = '0';
-  page.style.transformOrigin = 'top left';
-  page.style.transform = `scale(${scale})`;
-  page.style.margin = '0';
+  node.style.position = 'absolute';
+  node.style.left = '0';
+  node.style.top = '0';
+  node.style.transformOrigin = 'top left';
+  node.style.transform = `scale(${scale})`;
+  node.style.margin = '0';
 
-  holder.appendChild(page);
+  holder.appendChild(node);
   wrap.appendChild(holder);
 }
 
@@ -877,15 +1001,19 @@ async function exportPNG(){
     if(document.fonts && document.fonts.ready) await document.fonts.ready;
     await new Promise(r => requestAnimationFrame(r));
 
-    const orientation = resolveOrientation();
-    const stage = mountStage(orientation);
+    const mode = S.exportMode;
+    const orientation = mode === 'a4' ? resolveOrientation() : resolveDynamicOrientation();
+    const stage = mountStage(mode, orientation);
     await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
-    const page = stage.querySelector('.export-page');
-    const shortEdge = Math.min(page.offsetWidth, page.offsetHeight);
-    const scale = Math.max(1, PNG_SHORT_EDGE / shortEdge);
+    const node = stage.querySelector(mode === 'a4' ? '.export-page' : '.export-dynamic');
+    /* A4: ≈300 dpi on the short edge. Dynamic: fixed 2x — the image is
+       already content-sized, so a constant 2x keeps it crisp. */
+    const scale = mode === 'a4'
+      ? Math.max(1, PNG_SHORT_EDGE / Math.min(node.offsetWidth, node.offsetHeight))
+      : 2;
 
-    const canvas = await html2canvas(page, {
+    const canvas = await html2canvas(node, {
       scale,
       backgroundColor: '#ffffff',
       useCORS: true,
@@ -894,7 +1022,7 @@ async function exportPNG(){
 
     const data = canvas.toDataURL('image/png');
     const a = document.createElement('a');
-    a.download = `weekly-schedule-${dateStamp()}.png`;
+    a.download = `weekly-schedule-${mode}${S.exportBW ? '-bw' : ''}-${dateStamp()}.png`;
     a.href = data;
     document.body.appendChild(a);
     a.click();
@@ -921,13 +1049,14 @@ async function printSchedule(){
   try{
     if(document.fonts && document.fonts.ready) await document.fonts.ready;
 
-    const orientation = resolveOrientation();
+    const mode = S.exportMode;
+    const orientation = mode === 'a4' ? resolveOrientation() : resolveDynamicOrientation();
 
     /* 1. Update @page rule FIRST, before anything else */
-    applyPageRule(orientation);
+    applyPageRule(orientation, mode === 'a4' ? 0 : DYN_PRINT_MARGIN + 'mm');
 
-    /* 2. Mount the fresh full-size page off-screen */
-    mountStage(orientation);
+    /* 2. Mount the fresh export root off-screen */
+    mountStage(mode, orientation);
 
     /* 3. Hide the modal so it can't interfere */
     overlay.classList.remove('show');
@@ -971,26 +1100,26 @@ function init(){
     if(e.target === $('exportModal')) closeExportModal();
   });
 
-  /* Orientation inside the modal */
-  $('modalOrientSeg').addEventListener('click', e => {
+  /* Mode: dynamic (content-sized) vs fixed A4 */
+  $('modalModeSeg').addEventListener('click', e => {
     const b = e.target.closest('button[data-v]');
     if(!b) return;
-    S.orientation = b.dataset.v;
+    S.exportMode = b.dataset.v;
     saveSettings();
     renderModalControls();
     buildModalPreview();
   });
 
-  /* Title toggle inside the modal */
-  $('modalTitleToggle').addEventListener('change', e => {
-    S.exportTitle = e.target.checked;
+  /* Black-and-white toggle inside the modal */
+  $('modalBwToggle').addEventListener('change', e => {
+    S.exportBW = e.target.checked;
     saveSettings();
     buildModalPreview();
   });
 
   /* Rebuild the preview if the window resizes while the modal is open */
   addEventListener('resize', () => {
-    hideSuggestions(); closePicker();
+    syncSuggestion(); closePicker();
     if($('exportModal').classList.contains('show')) buildModalPreview();
   });
 
@@ -1002,8 +1131,7 @@ function init(){
   });
 
   addEventListener('scroll', () => {
-    if(Date.now() - lastFocusTime < 600) return;
-    hideSuggestions();
+    syncSuggestion();
     closePicker();
   }, true);
 
@@ -1015,13 +1143,20 @@ function init(){
 
   /* Ctrl+P / browser print: make sure we always have a valid document */
   addEventListener('beforeprint', () => {
-    const orientation = resolveOrientation();
-    applyPageRule(orientation);
-    mountStage(orientation);
+    const mode = S.exportMode;
+    const orientation = mode === 'a4' ? resolveOrientation() : resolveDynamicOrientation();
+    applyPageRule(orientation, mode === 'a4' ? 0 : DYN_PRINT_MARGIN + 'mm');
+    mountStage(mode, orientation);
   });
   addEventListener('afterprint', () => {
     /* Only clean up if the user didn't trigger our own print flow */
     unmountStage();
+  });
+
+  /* Flush any pending save when the page is closed or reloaded */
+  addEventListener('pagehide', () => {
+    if(persistTimer){ clearTimeout(persistTimer); persistTimer = null; }
+    saveData();
   });
 }
 
